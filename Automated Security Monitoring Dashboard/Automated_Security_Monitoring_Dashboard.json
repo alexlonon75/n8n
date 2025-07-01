@@ -1,0 +1,294 @@
+{
+  "name": "Automated Security Monitoring Dashboard",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5f5c63d9-a906-45ee-8205-4633ebec125a",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the essential data from n8n's HTTP response\nconst item = $input.first();\nconst responseData = item.json;\n\n// Extract status code (try multiple possible locations)\nconst statusCode = responseData.status_code || \n                  responseData.statusCode || \n                  responseData.status || \n                  0;\n\n// Calculate response time (n8n usually provides this)\nconst responseTime = responseData.response_time || \n                    responseData.responseTime || \n                    1000; // fallback value\n\n// Determine if site is up\nconst isUp = statusCode >= 200 && statusCode < 400;\n\n// Create the uptime data object\nconst uptimeData = {\n  url: 'https://alexlonon.com',\n  status: statusCode,\n  responseTime: Math.round(responseTime),\n  isUp: isUp,\n  errorMessage: isUp ? null : `HTTP ${statusCode} - Site unreachable`,\n  timestamp: new Date().toISOString()\n};\n\n// Debug logging\nconsole.log('Processing uptime check:', uptimeData);\n\nreturn [uptimeData];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        100
+      ],
+      "id": "d1c8b18f-53d9-4630-a4d6-44f0e914b97d",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8084807d-eafe-45b3-9666-7a747e976445",
+              "leftValue": "={{ $json.isUp }}",
+              "rightValue": "false",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        100
+      ],
+      "id": "bd3dfec4-a04d-44e3-8e55-a09d5ff920cb",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DISCORD_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"🚨 **WEBSITE DOWN ALERT** 🚨\",\n  \"embeds\": [\n    {\n      \"title\": \"alexlonon.com is DOWN!\",\n      \"color\": 15158332,\n      \"fields\": [\n        {\n          \"name\": \"Status Code\",\n          \"value\": \"{{ $json.status }}\",\n          \"inline\": true\n        },\n        {\n          \"name\": \"Response Time\",\n          \"value\": \"{{ $json.responseTime }}ms\",\n          \"inline\": true\n        },\n        {\n          \"name\": \"Error\",\n          \"value\": \"{{ $json.errorMessage }}\",\n          \"inline\": false\n        },\n        {\n          \"name\": \"Timestamp\",\n          \"value\": \"{{ $json.timestamp }}\",\n          \"inline\": false\n        }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        -40
+      ],
+      "id": "f6c8a59b-65bf-4c20-89a3-03980c5242ed",
+      "name": "Send to discord"
+    },
+    {
+      "parameters": {
+        "url": "https://alexlonon.com",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-uptime-monitor/1.0"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": false,
+          "redirect": {
+            "redirect": {}
+          },
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "ff4fbfd3-3bd7-41d5-bbfd-0fa413dc78c5",
+      "name": "Check Status"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DATABASE_WEBHOOK_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        100
+      ],
+      "id": "ba7fdb6d-46df-4302-a570-9500f188a847",
+      "name": "Send to Database"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "40198c55-35ed-487e-9f70-f79f3dec9ee8",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 200,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "afb1bccd-0591-4ff5-8d9b-c3aa33687b77",
+      "name": "Handle status"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error handling code for failed HTTP requests\nconst error = $input.first().json.error;\nconst statusCode = $input.first().json.statusCode || 0;\n\nreturn {\n  url: 'https://alexlonon.com',\n  status: statusCode,\n  responseTime: 0, // or timeout value\n  isUp: false,\n  errorMessage: error ? error.message || error : `HTTP ${statusCode} error`,\n  timestamp: new Date().toISOString(),\n  errorType: error ? 'network' : 'http'\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -100
+      ],
+      "id": "68827665-60bf-4872-83bc-a93595d2adfb",
+      "name": "Error handling"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Send to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send to discord",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Check Status": {
+      "main": [
+        [
+          {
+            "node": "Handle status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Database": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle status": {
+      "main": [
+        [
+          {
+            "node": "Error handling",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error handling": {
+      "main": [
+        [
+          {
+            "node": "Send to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "717587f6-e857-436e-8a8d-ed7e20c766a2",
+  "meta": {
+    "instanceId": "1af2c81998c3b2cbbb33f75a5442b4bbb79e47761154a7f7dc9082180c2e3a56"
+  },
+  "id": "6l9MjG9Exnideu8n",
+  "tags": []
+}
