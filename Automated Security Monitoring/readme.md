@@ -1,4 +1,4 @@
-# Automated Security Monitoring Dashboard
+# Automated Security Monitoring
 
 ## Overview
 This n8n workflow provides automated uptime monitoring for websites with real-time alerting and data logging capabilities. It continuously monitors website availability and sends notifications when issues are detected.
