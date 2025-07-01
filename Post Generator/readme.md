@@ -98,10 +98,14 @@ OPENAI_IMAGE_API_URL=https://api.openai.com/v1/images/generations
 
 ### Setting Up Environment Variables
 
-1. Create a `.env` file in your workflow directory
-2. Add your actual OpenAI API key
-3. Ensure the `.env` file is added to `.gitignore` for security
-4. Never commit API keys to version control
+1. Copy `.env.example` to `.env` in your workflow directory:
+   ```bash
+   cp .env.example .env
+   ```
+2. Edit the `.env` file and replace placeholder values with your actual API keys
+3. The `.env` file is automatically ignored by Git for security
+4. Never commit real API keys to version control
+5. Share the `.env.example` file as a template for other developers
 
 ## Content Generation Process
 
