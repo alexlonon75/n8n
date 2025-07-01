@@ -1,0 +1,301 @@
+{
+  "name": "Post Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Post with Image Generator",
+        "formDescription": "Fill out these fields and you'll have a fullpost ready to go in a minute",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "placeholder": "name@example.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Topic of Post",
+              "placeholder": "Topic",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Target Audience",
+              "placeholder": "e.g. young professionals",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5e6b71d3-0c41-4ec1-bee3-1b62acc08093",
+      "name": "On form submission",
+      "webhookId": "48e79ae9-ffaf-469c-bc3f-3b578107465d"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Topic of Post: {{ $json['Topic of Post'] }}\nTarget Audience: {{ $json['Target Audience'] }}",
+        "options": {
+          "systemMessage": "# Overview\nYou are an AI agent specialized in creating professional, educational, and engaging blog posts based on any topics provided by users.\n\n## Objectives\nAlways begin with conducting a real-time search using the googleSearch tool to gather the most accurate and up-to-date information on the topics. The post should be written to appeal to the written target audience. \n\nBased on your research, generate a well structured blog post that:\n- starts with the engaging hooks.\n- professional in tone\n- educational and insightful\n- include propose source attribute (e.g. \"according to [source]\")\n- contain relevant hashtag to improve visibility \n- ends with a clear call for action (e.g. asking for thoughts, feedback, or shares)\n\n## Output instructions\n- your ONLY output should be final blog post text\n- Do not include explanation, notes, or anything beyond the post itself\n\n## Example workflow\n1. receive a topic (e.g. \"ROI of warehouse automation\")\n2. use googleSearch to search or gather recent information or case studies\n3. draft a blog post based on that research\n4. format it with source citations, clean structure, optional hashtag, a call for action\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        240,
+        0
+      ],
+      "id": "e3d8bb29-e4e3-4adf-8a95-bf1e1ee99c13",
+      "name": "Post Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        600,
+        220
+      ],
+      "id": "548cb277-8fc0-4a24-804e-69c0b96a9e8f",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ZnPA83QN10GLJDta",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+      "typeVersion": 1,
+      "position": [
+        400,
+        220
+      ],
+      "id": "9191c6b4-0347-4d39-8570-a0a57a48f76f",
+      "name": "googleSearch",
+      "credentials": {
+        "serpApi": {
+          "id": "IAOGf03jvz1ypMkZ",
+          "name": "SerpAPI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Blog Post: {{ $json.output }}",
+        "options": {
+          "systemMessage": "# Overview\nYou are an AI agent that transforms the blog post into a visual prompt description for generating marketing visual materials. These visuals are designed to be paired with the blog post, helping communicating messages in a visually appealing, brand aligned way.\n\n## Objective\n- read and analyze the given blog post\n- identify the main message, insight, and takeaway from the post\n- create a clear, compelling graphic prompt that cna be used with text-to-image generator\n- the result should be a marketing style graphic - not literal scene or hyper realistic photo that:\n1. visually supports or illustrates the key idea in the post\n2. looks appropriate for use in the professional blog post\n3. feels polished, modern and engaging\n\n## output instructions\n- output only final image prompt. Do not output quotation marks\n- do not repeat or rephrase the blog post\n- do not add any explanation and extra content, just image prompt\n- never leave anything blank like \"header reserved for customizable callout text\"\n- output numerical stats when available in the original post\n\n## Style guide\n- think like a brand designer or market creative\n- visuals may include: text, charts, icons, abstract shape, overlay, modern illustrations, motion-like effects, bold typography elements (described, not rendered)\n- you can mention layout effect (e.g. \"split-screen design\", \"header with bold title and subtle background illustrations\")\n- assume the output with be generated with AI image tools, your prompt should guide these tools effectively\n\n## example prompt format\nA model flat-style graphics showing a human brain connected to mechanical gears, representing fusion of AI and automation. Minimalist background, soft gradients, clean sans-seriff text placement at the top "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        600,
+        0
+      ],
+      "id": "b6303d3c-7dc8-4dd2-99da-d19297cee2a5",
+      "name": "Image Prompt Agent"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OPENAI_IMAGE_API_URL }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $env.OPENAI_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-image-1"
+            },
+            {
+              "name": "prompt",
+              "value": "={{  $json.output }}"
+            },
+            {
+              "name": "size",
+              "value": "1024x1024"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "63205b0d-300b-47b0-b191-f11697ab2da5",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "data[0].b64_json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1180,
+        0
+      ],
+      "id": "66b7e59d-6c94-4a8f-9884-48d9958c255f",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('On form submission').item.json.Email }}",
+        "subject": "Generated Image",
+        "emailType": "text",
+        "message": "=Here you go! {{ $('Post Agent').item.json.output }}",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1400,
+        0
+      ],
+      "id": "6bedd6e3-04bb-4ecd-a969-5c27c9cfbdfe",
+      "name": "Gmail",
+      "webhookId": "ba70d755-cfb4-42ba-a130-2c0d68629530",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "QE1dRLsmQbAsac41",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Post Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Post Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Image Prompt Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "googleSearch": {
+      "ai_tool": [
+        [
+          {
+            "node": "Post Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Agent": {
+      "main": [
+        [
+          {
+            "node": "Image Prompt Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Image Prompt Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c9940c22-b8d8-432e-8297-1752ff69027b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1af2c81998c3b2cbbb33f75a5442b4bbb79e47761154a7f7dc9082180c2e3a56"
+  },
+  "id": "IXv4OidvMOgSUyI7",
+  "tags": []
+}
