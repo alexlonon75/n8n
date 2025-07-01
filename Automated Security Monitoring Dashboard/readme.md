@@ -5,7 +5,7 @@ This n8n workflow provides automated uptime monitoring for websites with real-ti
 
 ## Features
 - 🔄 **Automated Monitoring**: Scheduled checks every minute
-- 🚨 **Discord Alerts**: Instant notifications when sites go down
+- 🚨 **Discord Alerts**: Fast Notifications when sites go down
 - 📊 **Data Logging**: Stores uptime data in external database
 - ⚡ **Fast Response**: 10-second timeout for quick detection
 - 🛡️ **Error Handling**: Comprehensive error detection and reporting
